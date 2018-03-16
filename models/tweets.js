@@ -12,8 +12,9 @@ var tweetSchema = new mongoose.Schema({
 	timestamp: Number,
 	hashtags: [String],
 	urls: [String],
-	user_mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'users'}]
-
+	user_mentions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'users'}],
+	quoted_status_id: { type: mongoose.Schema.Types.ObjectId, ref: 'tweets'},
+	retweeted_status_id: {type: mongoose.Schema.Types.ObjectId, ref: 'tweets'}
 });
 
 module.exports = mongoose.model('tweets', tweetSchema);

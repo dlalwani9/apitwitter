@@ -1,7 +1,8 @@
 const express=require('express');
 const router=express.Router();
 
-var Twit = require('twit')
+var Twit = require('twit');
+var async = require('async');
 
 var User = require('../controllers/users');
 var Tweet = require('../controllers/tweets');
@@ -19,9 +20,42 @@ router.post('/stream',(req, res)=>{
   stream = T.stream('statuses/filter', { track: req.body.stream })
 
     stream.on('tweet', function (tweet) {
-      Tweet.add(tweet,()=>{
-        console.log("tweet updated");
+
+      async.waterfall([
+          function(callback) {
+            if(tweet.retweeted_status){
+              Tweet.add(tweet.retweeted_status,(err, tweet)=>{
+                if(err) callback(err, null);
+                else callback(null, tweet._id );
+              });
+            }
+            else callback(null, null);
+          },
+          function(retweet, callback) {
+            if(retweet) tweet.retweet = retweet;
+
+            if(tweet.quoted_status){
+              Tweet.add(tweet.quoted_status,(err, tweet)=>{
+                if(err) callback(err, null);
+                else callback(null, tweet._id );
+              });
+            }
+            else callback(null, null);
+
+          },
+          function(quoted, callback) {
+            if(quoted) tweet.quoted = quoted;
+
+            Tweet.add(tweet, (err, tweet)=>{
+              if(err) callback(err, null);
+              else callback(null, tweet);
+            });
+          }
+      ], function (err, result) {
+          if(err) console.log('Some Error Occured'+error);
+          else console.log("tweet updated");
       });
+
       arr.push(tweet);
     });
   //  T.currentTwitStream = stream;

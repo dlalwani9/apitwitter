@@ -1,5 +1,6 @@
 var mongoose = require('mongoose');
 var async = require('async');
+var moment = require('moment');
 
 var Tweet = require('../models/tweets');
 
@@ -8,6 +9,7 @@ var User = require('./users');
 exports.add = (tweet, callback)=>{
   User.add(tweet.user, (err, user)=>{
     if(err)  callback();
+    var timestamp = moment(tweet.created_at, 'dd MMM DD HH:mm:ss ZZ YYYY', 'en').valueOf();
 
     var newTweet = {
       id: tweet.id
@@ -17,8 +19,11 @@ exports.add = (tweet, callback)=>{
     newTweet.reply_count = tweet.reply_count;
     newTweet.favorite_count = tweet.favorite_count;
     newTweet.lang = tweet.lang;
-    newTweet.timestamp = tweet.timestamp_ms;
+    if(tweet.timestamp_ms) newTweet.timestamp = tweet.timestamp_ms;
+    else newTweet.timestamp = timestamp;
 
+    if(tweet.quoted) newTweet.quoted_status_id = tweet.quoted;
+    if(tweet.retweet) newTweet.retweeted_status_id = tweet.retweet;
     var entities;
     if(tweet.extended_tweet){
         entities = tweet.extended_tweet.entities;
@@ -46,7 +51,7 @@ exports.add = (tweet, callback)=>{
       .lean()
       .exec((err, tweet)=>{
         console.log(tweet);
-        callback();
+        callback(err, tweet);
       });
 
      });
