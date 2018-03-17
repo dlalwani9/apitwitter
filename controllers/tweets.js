@@ -17,7 +17,9 @@ exports.add = (tweet, callback)=>{
     newTweet.text = tweet.text;
     newTweet.quote_count = tweet.quote_count;
     newTweet.reply_count = tweet.reply_count;
+    newTweet.user_id = user._id;
     newTweet.favorite_count = tweet.favorite_count;
+    newTweet.retweet_count = tweet.retweet_count;
     newTweet.lang = tweet.lang;
     if(tweet.timestamp_ms) newTweet.timestamp = tweet.timestamp_ms;
     else newTweet.timestamp = timestamp;
@@ -33,8 +35,12 @@ exports.add = (tweet, callback)=>{
 
     var hashtags = [];
     var user_mentions = [];
+    var urls = [];
 
     for(var i in entities.hashtags)    hashtags.push(entities.hashtags[i].text);
+    if(hashtags.length==0) hashtags.push('NA');
+    for(var i in entities.urls)  urls.push(entities.urls[i].expanded_url);
+    if(urls.length==0) urls.push('NA');
 
     async.forEachOfSeries(entities.user_mentions, function(user, index, callback){
         User.add(user, (err, user)=>{
@@ -46,6 +52,7 @@ exports.add = (tweet, callback)=>{
      function(err){
       newTweet.hashtags = hashtags;
       newTweet.user_mentions = user_mentions;
+      newTweet.urls = urls;
 
       Tweet.findOneAndUpdate({id: tweet.id}, newTweet ,{new:true, upsert:true})
       .lean()
@@ -58,3 +65,92 @@ exports.add = (tweet, callback)=>{
 
   });
 }
+
+regexSuitable = (string, type)=>{
+  var result;
+  if(type==0)
+  result='^'+string+'.*';
+  else if(type==1)
+  result='.*'+string+'.*';
+  else if(type==2)
+  result='.*'+string+'$';
+
+  return result;
+}
+
+pushId = (array)=>{
+  var sample=[];
+  for(var i in array)
+    sample.push(array[i]._id);
+  return sample;
+}
+
+exports.searchAndFilter = (req, callback)=>{
+  var body=req.body, search='.*', hashtags='.*', urls='.*', user_mentions='.*', lang='.*';
+  var from = 42250000, to = Date.now();
+  var retweet_min = -1, retweet_max = Date.now();
+  var favorite_min = -1, favorite_max = Date.now();
+  var quoted_min = -1, quoted_max = Date.now();
+
+  if(body.retweet){
+    if(body.retweet.min && body.retweet.min!='') retweet_min=body.retweet.min;
+    if(body.retweet.max && body.retweet.max!='') retweet_max=body.retweet.max;
+    if(body.retweet.exact && body.retweet.exact!='') {
+      retweet_min = body.retweet.exact;
+      retweet_max = body.retweet.exact;
+    }
+  }
+
+  if(body.favorite){
+    if(body.favorite.min && body.favorite.min!='') favorite_min=body.favorite.min;
+    if(body.favorite.max && body.favorite.max!='') favorite_max=body.favorite.max;
+    if(body.favorite.exact && body.favorite.exact!='') {
+      favorite_min = body.favorite.exact;
+      favorite_max = body.favorite.exact;
+    }
+  }
+
+  if(body.quoted){
+    if(body.quoted.min && body.quoted.min!='') quoted_min=body.quoted.min;
+    if(body.quoted.max && body.quoted.max!='') quoted_max=body.quoted.max;
+    if(body.quoted.exact && body.quoted.exact!='') {
+      quoted_min = body.quoted.exact;
+      quoted_max = body.quoted.exact;
+    }
+  }
+
+  if(body.lang && body.lang!='') lang=regexSuitable(body.lang,1);
+  if(body.search && body.search!='') search=regexSuitable(body.search.text, body.search.type);
+  if(body.hashtags && body.hashtags!='') hashtags=regexSuitable(body.hashtags.search, body.hashtags.type);
+  if(body.urls && body.urls!='') urls=regexSuitable(body.urls.search, body.urls.type);
+  if(body.user_mentions) user_mentions=regexSuitable(body.user_mentions.search, body.user_mentions.type);
+  if(body.date && body.date.from && body.date.from!=''){
+    from = moment(body.date.from,'DD-MM-YYYY h:mm','en').valueOf();
+  }
+  if(body.date && body.date.to && body.date.to!=''){
+    to = moment(body.date.to,'DD-MM-YYYY h:mm','en').valueOf();
+  }
+
+  // console.log(search,hashtags,urls);
+  // console.log(quoted_min);
+  // console.log(quoted_max);
+  // console.log(to);
+  Tweet.find({ $and:[ { timestamp :{ $gte: from, $lte: to }},
+                      { lang: {$regex: lang ,$options:'i'} },
+                      { retweet_count :{ $gte: retweet_min, $lte: retweet_max }},
+                      { favorite_count :{ $gte: favorite_min, $lte: favorite_max }},
+                      { quote_count :{ $gte: quoted_min, $lte: quoted_max }},
+                      { text: {$regex: search ,$options:'i'} },
+                      { hashtags: {$regex: hashtags ,$options:'i'} },
+                      { urls: {$regex: urls ,$options:'i'} }]  })
+  .lean()
+  .exec((err, tweets)=>{
+    // tweets = tweets.filter(function(tweet){
+    //   console.log(tweet);
+    //   return (tweet.timestamp_ms>=from && tweet.timestamp_ms<=to)
+    // });
+    // console.log(tweets);
+    if(err) callback(err,null);
+    callback(null, tweets);
+  });
+};

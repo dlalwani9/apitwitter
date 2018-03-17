@@ -68,6 +68,13 @@ router.get('/stop',(req, res)=>{
 
 })
 
+router.post('/searchfilter', (req, res)=>{
+  Tweet.searchAndFilter(req, (err, tweets)=>{
+    if(err) return res.json(err);
+    else return res.json(tweets);
+  });
+});
+
 router.post('/user',(req, res)=>{
   T.get('users/show', { screen_name: req.body.user },  function (err, data, response) {
   console.log(data);
