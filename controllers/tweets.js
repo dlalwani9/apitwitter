@@ -86,7 +86,7 @@ pushId = (array)=>{
 }
 
 exports.searchAndFilter = (req, callback)=>{
-  var body=req.body, search='.*', hashtags='.*', urls='.*', user_mentions='.*', lang='.*';
+  var body=req.body, search='.*', hashtags='.*', urls='.*', mentionsName='.*', lang='.*', mentionsScreenName='.*';
   var from = 42250000, to = Date.now();
   var retweet_min = -1, retweet_max = Date.now();
   var favorite_min = -1, favorite_max = Date.now();
@@ -123,7 +123,8 @@ exports.searchAndFilter = (req, callback)=>{
   if(body.search && body.search!='') search=regexSuitable(body.search.text, body.search.type);
   if(body.hashtags && body.hashtags!='') hashtags=regexSuitable(body.hashtags.search, body.hashtags.type);
   if(body.urls && body.urls!='') urls=regexSuitable(body.urls.search, body.urls.type);
-  if(body.user_mentions) user_mentions=regexSuitable(body.user_mentions.search, body.user_mentions.type);
+  if(body.mentionsName && body.mentionsName!='') mentionsName=regexSuitable(body.mentionsName.search, body.mentionsName.type);
+  if(body.mentionsScreenName && body.mentionsScreenName!='') mentionsScreenName=regexSuitable(body.mentionsScreenName.search, body.mentionsScreenName.type);
   if(body.date && body.date.from && body.date.from!=''){
     from = moment(body.date.from,'DD-MM-YYYY h:mm','en').valueOf();
   }
@@ -132,7 +133,7 @@ exports.searchAndFilter = (req, callback)=>{
   }
 
   // console.log(search,hashtags,urls);
-  // console.log(quoted_min);
+   //console.log(mentionsScreenName);
   // console.log(quoted_max);
   // console.log(to);
   Tweet.find({ $and:[ { timestamp :{ $gte: from, $lte: to }},
@@ -144,11 +145,26 @@ exports.searchAndFilter = (req, callback)=>{
                       { hashtags: {$regex: hashtags ,$options:'i'} },
                       { urls: {$regex: urls ,$options:'i'} }]  })
   .lean()
+  .populate({
+            path: 'user_mentions',
+            match: {
+                      $and: [{ name: {$regex: mentionsName ,$options:'i'} },
+                           { screen_name: {$regex: mentionsScreenName ,$options:'i'} }]
+
+                   }
+            })
   .exec((err, tweets)=>{
-    // tweets = tweets.filter(function(tweet){
-    //   console.log(tweet);
-    //   return (tweet.timestamp_ms>=from && tweet.timestamp_ms<=to)
-    // });
+    if(mentionsName!='.*' && mentionsName!='^.*' && mentionsName!='.*.*' && mentionsName!='.*$'){
+    tweets = tweets.filter(function(tweet){
+      return (tweet.user_mentions.length>0);
+    });
+   }
+
+   if(mentionsScreenName!='.*' && mentionsScreenName!='^.*' && mentionsScreenName!='.*.*' && mentionsScreenName!='.*$'){
+     tweets = tweets.filter(function(tweet){
+     return (tweet.user_mentions.length>0);
+   });
+   }
     // console.log(tweets);
     if(err) callback(err,null);
     callback(null, tweets);
