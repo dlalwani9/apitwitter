@@ -9,10 +9,10 @@ var User = require('../controllers/users');
 var Tweet = require('../controllers/tweets');
 
 var T = new Twit({
-  consumer_key:         'omPhO9BgvD6J66X9YJazrpUm2',
-  consumer_secret:      'TBuDWzFwy0IRJRCfeS6l16nOCNirrBQWwPeuGd71zColnoeU1F',
-  access_token:         '310866250-AjQHiW7HpwqU5yu8y920jLXbgcdnSo3kHQeO2VCf',
-  access_token_secret:  'd9pmi39W92rKDFk74jQepdlu0MqA12kvEqC9kJDcT8aFD',
+  consumer_key:         process.env.key,
+  consumer_secret:      process.env.secret,
+  access_token:         process.env.token,
+  access_token_secret:  process.env.tokensecret,
   timeout_ms:           10*1000,  // optional HTTP request timeout to apply to all requests.
 });
 
@@ -65,7 +65,7 @@ router.post('/stream',(req, res)=>{
 
 router.get('/stop',(req, res)=>{
   stream.stop();
-  res.json(arr);
+  res.send('streaming stopped');
 
 })
 

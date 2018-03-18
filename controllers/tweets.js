@@ -58,7 +58,7 @@ exports.add = (tweet, callback)=>{
       Tweet.findOneAndUpdate({id: tweet.id}, newTweet ,{new:true, upsert:true})
       .lean()
       .exec((err, tweet)=>{
-        console.log(tweet);
+        //console.log(tweet);
         callback(err, tweet);
       });
 

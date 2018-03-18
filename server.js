@@ -5,8 +5,7 @@ var mongoose=require('mongoose');
 
 //MLAB
 mongoose.Promise = global.Promise;
- //mongoose.connect('mongodb://debanshu&guru:rnEevR1iO@ds241065.mlab.com:41065/scrapify',{useMongoClient:true});
-mongoose.connect('mongodb://tweetsapi:doitforyou@ds161493.mlab.com:61493/tweetbabytweet');
+mongoose.connect(process.env.MONGODB_URI || "mongodb://localhost:27017/twitterapi");
 
 var app=express();
 const port=process.env.PORT || 5000;
