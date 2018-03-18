@@ -6,6 +6,7 @@ var Tweet = require('../models/tweets');
 
 var User = require('./users');
 
+var tweetsFilter = [];
 exports.add = (tweet, callback)=>{
   User.add(tweet.user, (err, user)=>{
     if(err)  callback();
@@ -180,6 +181,7 @@ exports.searchAndFilter = (req, callback)=>{
                       { hashtags: {$regex: hashtags ,$options:'i'} },
                       { urls: {$regex: urls ,$options:'i'} }]  })
   .lean()
+  .populate('retweeted_status_id quoted_status_id')
   .populate({
             path: 'user_mentions',
             match: {
@@ -215,7 +217,71 @@ exports.searchAndFilter = (req, callback)=>{
     var start = Math.max(pageNo-1,0)*perPage;
     var end = start+perPage;
     tweets = tweets.slice(start, end);
+    tweetsFilter = tweets;
     if(err) callback(err,null);
     callback(null, tweets);
   });
 };
+
+exports.csvGenerate = (req, callback)=>{
+    var tweetList = [];
+
+    async.forEachOfSeries(tweetsFilter,
+          function(tweet, index, callback1){
+            var sample = {
+              text: tweet.text
+            }
+            sample.retweet_count = tweet.retweet_count;
+            sample.favorite_count = tweet.favorite_count;
+            sample.lang = tweet.lang;
+            sample.quote_count  = tweet.quote_count;
+            if(tweet.hashtags.length>0 && tweet.hashtags[0]!='NA')
+            sample.hashtags = tweet.hashtags;
+            else
+            sample.hashtags = "null";
+
+            if(tweet.urls.length>0 && tweet.urls[0]!='NA')
+            sample.urls = tweet.urls;
+            else
+            sample.urls = "null";
+
+            sample.reply_count = tweet.reply_count;
+
+            if(tweet.retweeted_status_id)
+            sample.retweeted_status_id = tweet.retweeted_status_id.id;
+            else
+            sample.retweeted_status_id = "null";
+
+            if(tweet.quoted_status_id)
+            sample.quoted_status_id = tweet.quoted_status_id.id;
+            else
+            sample.quoted_status_id = "null";
+
+            if(tweet.user_mentions.length>0){
+              var arr = [];
+
+              for(var i in tweet.user_mentions){
+                arr.push(tweet.user_mentions[i].screen_name);
+              }
+              sample.userMentionScreenName = arr;
+            }
+            else
+            sample.userMentionScreenName = "null";
+
+            sample.userId = tweet.user_id.id;
+            sample.userName = tweet.user_id.name;
+            sample.userScreenName = tweet.user_id.screen_name;
+            sample.followers_count = tweet.user_id.followers_count;
+            sample.statuses_count = tweet.user_id.statuses_count;
+            if(tweet.user_id.location)
+            sample.userLocation = tweet.user_id.location;
+            else
+            sample.userLocation = "null";
+
+            tweetList.push(sample);
+            callback1();
+          },
+          function(err){
+            callback(err, tweetList);
+          });
+}

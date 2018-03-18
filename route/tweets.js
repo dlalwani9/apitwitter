@@ -3,6 +3,7 @@ const router=express.Router();
 
 var Twit = require('twit');
 var async = require('async');
+var json2csv = require('json-2-csv');
 
 var User = require('../controllers/users');
 var Tweet = require('../controllers/tweets');
@@ -75,10 +76,29 @@ router.post('/searchfilter', (req, res)=>{
   });
 });
 
-router.post('/user',(req, res)=>{
-  T.get('users/show', { screen_name: req.body.user },  function (err, data, response) {
-  console.log(data);
-  res.json(data)
+router.get('/csv', (req, res)=>{
+  Tweet.csvGenerate(req, (err, tweets)=>{
+    if(err) return res.json(err);
+    var options = {
+    delimiter : {
+        wrap  : '"', // Double Quote (") character
+        field : ',', // Comma field delimiter
+        array : ';', // Semicolon array value delimiter
+        eol   : '\n' // Newline delimiter
+    },
+    prependHeader    : true,
+    sortHeader       : false,
+    trimHeaderValues : true,
+    trimFieldValues  :  true,
+    keys             : ['text', 'retweet_count', 'favorite_count','lang','quote_count','hashtags','urls','reply_count', 'retweeted_status_id', 'quoted_status_id', 'userMentionScreenName', 'userId', 'userName', 'userScreenName','followers_count', 'statuses_count', 'userLocation']
+};
+    // var fields = ['text', 'retweet_count', 'favorite_count','lang','quote_count','hashtags','urls','reply_count', 'retweeted_status_id', 'quoted_status_id', 'userMentionScreenName', 'userId', 'userName', 'userScreenName','followers_count', 'statuses_count', 'userLocation'];
+    json2csv.json2csv(tweets,(err, csv)=>{
+      if(err)  return res.json(err);
+      res.setHeader('Content-disposition', 'attachment; filename=tweetsFiltered.csv');
+      res.set('Content-Type', 'text/csv');
+      res.send(csv);
+    },options);
   });
 });
 
