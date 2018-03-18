@@ -2,8 +2,11 @@
 
 Made 4 Apis
 * 1.) For Triggering a twitter stream and storing them into a NoSQL database(MongoDB) for keyword sent in request http://apitweets.herokuapp.com/tweets/stream
+
 * 2.) To get the stored tweets and their metadata according to the filters sent in request http://apitweets.herokuapp.com/tweets/searchfilter
+
 * 3.) For Exporting filtered data in csv http://apitweets.herokuapp.com/tweets/csv
+
 * 4.) For stopping the twitter stream http://apitweets.herokuapp.com/tweets/stop
 
 ## Built With
