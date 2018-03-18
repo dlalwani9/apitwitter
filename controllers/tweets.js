@@ -78,11 +78,22 @@ regexSuitable = (string, type)=>{
   return result;
 }
 
+function predicateBy(sortBy, sort){
+   return function(a,b){
+      if( a[sortBy] > b[sortBy]){
+          return 1*sort;
+      }else if( a[sortBy] < b[sortBy] ){
+          return -1*sort;
+      }
+      return 0;
+   }
+}
+
 
 exports.searchAndFilter = (req, callback)=>{
   var body=req.body, search='.*', hashtags='.*', urls='.*', mentionsName='.*', lang='.*', mentionsScreenName='.*';
-  var userName='.*',userScreenName='.*';
-  var from = 42250000, to = Date.now();
+  var userName='.*',userScreenName='.*', sortBy = "";
+  var from = 42250000, to = Date.now(), perPage = 20, pageNo = 1, sort = 1;
   var retweet_min = -1, retweet_max = Date.now();
   var favorite_min = -1, favorite_max = Date.now();
   var quoted_min = -1, quoted_max = Date.now();
@@ -134,6 +145,14 @@ exports.searchAndFilter = (req, callback)=>{
     }
   }
 
+  if(body.perPage) perPage=body.perPage;
+  if(body.pageNo) pageNo=body.pageNo;
+  if(body.sort) sort=body.sort;
+  if(body.sortBy && body.sortBy!='') sortBy=body.sortBy;
+  if(sortBy!=''){
+    if(sortBy=='date')
+      sortBy='timestamp'
+  }
   if(body.lang && body.lang!='') lang=regexSuitable(body.lang,1);
   if(body.search && body.search.text!='' && body.search.type!='') search=regexSuitable(body.search.text, body.search.type);
   if(body.hashtags && body.hashtags.search!='' && body.hashtags.type!='') hashtags=regexSuitable(body.hashtags.search, body.hashtags.type);
@@ -152,7 +171,6 @@ exports.searchAndFilter = (req, callback)=>{
    // console.log(lang, mentionsName, mentionsScreenName, userName);
    //  console.log(followers_min);
    // console.log(followers_max);
-  // console.log(to);
   Tweet.find({ $and:[ { timestamp :{ $gte: from, $lte: to }},
                       { lang: {$regex: lang ,$options:'i'} },
                       { retweet_count :{ $gte: retweet_min, $lte: retweet_max }},
@@ -191,8 +209,12 @@ exports.searchAndFilter = (req, callback)=>{
    tweets = tweets.filter(function(tweet){
      return (tweet.user_id);
    });
-
+   if(sortBy!='')
+   tweets = tweets.sort(predicateBy(sortBy, sort));
     // console.log(tweets);
+    var start = Math.max(pageNo-1,0)*perPage;
+    var end = start+perPage;
+    tweets = tweets.slice(start, end);
     if(err) callback(err,null);
     callback(null, tweets);
   });
