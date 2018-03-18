@@ -78,19 +78,16 @@ regexSuitable = (string, type)=>{
   return result;
 }
 
-pushId = (array)=>{
-  var sample=[];
-  for(var i in array)
-    sample.push(array[i]._id);
-  return sample;
-}
 
 exports.searchAndFilter = (req, callback)=>{
   var body=req.body, search='.*', hashtags='.*', urls='.*', mentionsName='.*', lang='.*', mentionsScreenName='.*';
+  var userName='.*',userScreenName='.*';
   var from = 42250000, to = Date.now();
   var retweet_min = -1, retweet_max = Date.now();
   var favorite_min = -1, favorite_max = Date.now();
   var quoted_min = -1, quoted_max = Date.now();
+  var statuses_min = -1, statuses_max = Date.now();
+  var followers_min = -1, followers_max = Date.now();
 
   if(body.retweet){
     if(body.retweet.min && body.retweet.min!='') retweet_min=body.retweet.min;
@@ -119,12 +116,32 @@ exports.searchAndFilter = (req, callback)=>{
     }
   }
 
+  if(body.statuses){
+    if(body.statuses.min && body.statuses.min!='') statuses_min=body.statuses.min;
+    if(body.statuses.max && body.statuses.max!='') statuses_max=body.statuses.max;
+    if(body.statuses.exact && body.statuses.exact!='') {
+      statuses_min = body.statuses.exact;
+      statuses_max = body.statuses.exact;
+    }
+  }
+
+  if(body.followers){
+    if(body.followers.min && body.followers.min!='') followers_min=body.followers.min;
+    if(body.followers.max && body.followers.max!='') followers_max=body.followers.max;
+    if(body.followers.exact && body.followers.exact!='') {
+      followers_min = body.followers.exact;
+      followers_max = body.followers.exact;
+    }
+  }
+
   if(body.lang && body.lang!='') lang=regexSuitable(body.lang,1);
-  if(body.search && body.search!='') search=regexSuitable(body.search.text, body.search.type);
-  if(body.hashtags && body.hashtags!='') hashtags=regexSuitable(body.hashtags.search, body.hashtags.type);
-  if(body.urls && body.urls!='') urls=regexSuitable(body.urls.search, body.urls.type);
-  if(body.mentionsName && body.mentionsName!='') mentionsName=regexSuitable(body.mentionsName.search, body.mentionsName.type);
-  if(body.mentionsScreenName && body.mentionsScreenName!='') mentionsScreenName=regexSuitable(body.mentionsScreenName.search, body.mentionsScreenName.type);
+  if(body.search && body.search.text!='' && body.search.type!='') search=regexSuitable(body.search.text, body.search.type);
+  if(body.hashtags && body.hashtags.search!='' && body.hashtags.type!='') hashtags=regexSuitable(body.hashtags.search, body.hashtags.type);
+  if(body.urls && body.urls.search!='' && body.urls.type!='') urls=regexSuitable(body.urls.search, body.urls.type);
+  if(body.mentionsName && body.mentionsName.search!='' && body.mentionsName.type!='') mentionsName=regexSuitable(body.mentionsName.search, body.mentionsName.type);
+  if(body.mentionsScreenName && body.mentionsScreenName.search!='' && body.mentionsScreenName.type!='') mentionsScreenName=regexSuitable(body.mentionsScreenName.search, body.mentionsScreenName.type);
+  if(body.userName && body.userName.search!='' && body.userName.type!='') userName=regexSuitable(body.userName.search, body.userName.type);
+  if(body.userScreenName && body.userScreenName.search!='' && body.userScreenName.type!='' ) userScreenName=regexSuitable(body.userScreenName.search, body.userScreenName.type);
   if(body.date && body.date.from && body.date.from!=''){
     from = moment(body.date.from,'DD-MM-YYYY h:mm','en').valueOf();
   }
@@ -132,9 +149,9 @@ exports.searchAndFilter = (req, callback)=>{
     to = moment(body.date.to,'DD-MM-YYYY h:mm','en').valueOf();
   }
 
-  // console.log(search,hashtags,urls);
-   //console.log(mentionsScreenName);
-  // console.log(quoted_max);
+   // console.log(lang, mentionsName, mentionsScreenName, userName);
+   //  console.log(followers_min);
+   // console.log(followers_max);
   // console.log(to);
   Tweet.find({ $and:[ { timestamp :{ $gte: from, $lte: to }},
                       { lang: {$regex: lang ,$options:'i'} },
@@ -153,18 +170,28 @@ exports.searchAndFilter = (req, callback)=>{
 
                    }
             })
+  .populate({
+            path: 'user_id',
+            match: {
+                      $and: [{ name: {$regex: userName ,$options:'i'} },
+                             { screen_name: {$regex: userScreenName ,$options:'i'} },
+                             { statuses_count :{ $gte: statuses_min, $lte: statuses_max }},
+                             { followers_count :{ $gte: followers_min, $lte: followers_max }}]
+
+                   }
+            })
   .exec((err, tweets)=>{
-    if(mentionsName!='.*' && mentionsName!='^.*' && mentionsName!='.*.*' && mentionsName!='.*$'){
-    tweets = tweets.filter(function(tweet){
-      return (tweet.user_mentions.length>0);
+    if((mentionsName!='.*' && mentionsName!='^.*' && mentionsName!='.*.*' && mentionsName!='.*$') ||
+      (mentionsScreenName!='.*' && mentionsScreenName!='^.*' && mentionsScreenName!='.*.*' && mentionsScreenName!='.*$')){
+          tweets = tweets.filter(function(tweet){
+            return (tweet.user_mentions.length>0);
     });
    }
 
-   if(mentionsScreenName!='.*' && mentionsScreenName!='^.*' && mentionsScreenName!='.*.*' && mentionsScreenName!='.*$'){
-     tweets = tweets.filter(function(tweet){
-     return (tweet.user_mentions.length>0);
+   tweets = tweets.filter(function(tweet){
+     return (tweet.user_id);
    });
-   }
+
     // console.log(tweets);
     if(err) callback(err,null);
     callback(null, tweets);
