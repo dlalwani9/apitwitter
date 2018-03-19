@@ -235,7 +235,7 @@ exports.csvGenerate = (req, callback)=>{
             var sample = {
               text: tweet.text
             }
-            sample.time = moment(tweet.timestamp).format("DD-MM-YYYY HH:mm");
+            sample.date = moment(tweet.timestamp).format("DD-MM-YYYY HH:mm");
             sample.retweet_count = tweet.retweet_count;
             sample.favorite_count = tweet.favorite_count;
             sample.lang = tweet.lang;
