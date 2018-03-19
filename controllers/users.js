@@ -3,7 +3,7 @@ var async = require('async');
 
 var User = require('../models/users');
 var Tweet = require('../models/tweets');
-
+//adding user
 exports.add = (user, callback)=>{
   var newUser = {
     id: user.id
@@ -16,6 +16,7 @@ exports.add = (user, callback)=>{
   if(user.statuses_count) newUser.statuses_count = user.statuses_count;
   if(user.url) newUser.url = user.url;
 
+  // update user if present or create a nwe document in user collection
   User.findOneAndUpdate({id: newUser.id}, newUser, {new:true, upsert: true })
   .lean()
   .exec((err, user)=>{

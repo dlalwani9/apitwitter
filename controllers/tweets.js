@@ -10,6 +10,7 @@ var tweetsFilter = [];
 
 // add tweets
 exports.add = (tweet, callback)=>{
+  // first add user of the tweet
   User.add(tweet.user, (err, user)=>{
     if(err)  callback();
     var timestamp = moment(tweet.created_at, 'dd MMM DD HH:mm:ss ZZ YYYY', 'en').valueOf();
@@ -40,12 +41,15 @@ exports.add = (tweet, callback)=>{
     var user_mentions = [];
     var urls = [];
 
+    // pushing hashtags in tweet collection
     for(var i in entities.hashtags)    hashtags.push(entities.hashtags[i].text);
     if(hashtags.length==0) hashtags.push('NA');
+    //pushing urls in tweet collection
     for(var i in entities.urls)  urls.push(entities.urls[i].expanded_url);
     if(urls.length==0) urls.push('NA');
 
     async.forEachOfSeries(entities.user_mentions, function(user, index, callback){
+      // users of user_mentions being added to user collection
         User.add(user, (err, user)=>{
           console.log('User being added');
           user_mentions.push(user._id);
@@ -57,6 +61,7 @@ exports.add = (tweet, callback)=>{
       newTweet.user_mentions = user_mentions;
       newTweet.urls = urls;
 
+      // adding a tweet if it does not exist or else update the tweet.
       Tweet.findOneAndUpdate({id: tweet.id}, newTweet ,{new:true, upsert:true})
       .lean()
       .exec((err, tweet)=>{
@@ -69,6 +74,7 @@ exports.add = (tweet, callback)=>{
   });
 }
 
+// making regex pattern for string searching
 regexSuitable = (string, type)=>{
   var result;
   if(type==0)
@@ -95,7 +101,7 @@ function predicateBy(sortBy, sort){
 
 // for search and filtering
 exports.searchAndFilter = (req, callback)=>{
-  //initializing variables if no input given
+  //initializing variables such that if less or no filters are given in requests
   var body=req.body, search='.*', hashtags='.*', urls='.*', mentionsName='.*', lang='.*', mentionsScreenName='.*';
   var userName='.*',userScreenName='.*', sortBy = "";
   var from = 42250000, to = Date.now(), perPage = 20, pageNo = 1, sort = 1;
@@ -176,6 +182,8 @@ exports.searchAndFilter = (req, callback)=>{
    // console.log(lang, mentionsName, mentionsScreenName, userName);
    //  console.log(followers_min);
    // console.log(followers_max);
+
+   // applying search filters in the query
   Tweet.find({ $and:[ { timestamp :{ $gte: from, $lte: to }},
                       { lang: {$regex: lang ,$options:'i'} },
                       { retweet_count :{ $gte: retweet_min, $lte: retweet_max }},
@@ -216,6 +224,7 @@ exports.searchAndFilter = (req, callback)=>{
      return (tweet.user_id);
    });
    if(sortBy!='')
+   // sorting
    tweets = tweets.sort(predicateBy(sortBy, sort));
     // pagination
     var start = Math.max(pageNo-1,0)*perPage;
@@ -229,7 +238,7 @@ exports.searchAndFilter = (req, callback)=>{
 
 exports.csvGenerate = (req, callback)=>{
     var tweetList = [];
-
+    // making json array for csv file
     async.forEachOfSeries(tweetsFilter,
           function(tweet, index, callback1){
             var sample = {

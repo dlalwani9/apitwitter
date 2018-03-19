@@ -8,6 +8,7 @@ var json2csv = require('json-2-csv');
 var User = require('../controllers/users');
 var Tweet = require('../controllers/tweets');
 //made secure and heroku ready
+//necessary tokens for streaming data from twitter
 var T = new Twit({
   consumer_key:         process.env.key,
   consumer_secret:      process.env.secret,
@@ -21,7 +22,7 @@ router.post('/stream',(req, res)=>{
   stream = T.stream('statuses/filter', { track: req.body.stream })
 
     stream.on('tweet', function (tweet) {
-
+  //Tweet.add() function below is present in Tweet controller
       async.waterfall([
           function(callback) {
             if(tweet.retweeted_status){      // storing retweeted tweet
@@ -64,12 +65,13 @@ router.post('/stream',(req, res)=>{
 });
 
 router.get('/stop',(req, res)=>{
-  stream.stop();
+  stream.stop();                     // stop the stream
   res.send('streaming stopped');
 
 })
 
 router.post('/searchfilter', (req, res)=>{
+  // calling search and filter function in Tweet controller file
   Tweet.searchAndFilter(req, (err, tweets)=>{
     if(err) return res.json(err);
     else return res.json(tweets);
@@ -77,6 +79,9 @@ router.post('/searchfilter', (req, res)=>{
 });
 
 router.get('/csv', (req, res)=>{
+  // calling csvGenerate function in Tweet controller file
+  // "keys" array below contains headers of csv file
+  // csv file will be saved as tweetsFiltered.csv
   Tweet.csvGenerate(req, (err, tweets)=>{
     if(err) return res.json(err);
     var options = {
