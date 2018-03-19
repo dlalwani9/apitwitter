@@ -7,7 +7,7 @@ var json2csv = require('json-2-csv');
 
 var User = require('../controllers/users');
 var Tweet = require('../controllers/tweets');
-
+//made secure and heroku ready
 var T = new Twit({
   consumer_key:         process.env.key,
   consumer_secret:      process.env.secret,
@@ -24,7 +24,7 @@ router.post('/stream',(req, res)=>{
 
       async.waterfall([
           function(callback) {
-            if(tweet.retweeted_status){
+            if(tweet.retweeted_status){      // storing retweeted tweet
               Tweet.add(tweet.retweeted_status,(err, tweet)=>{
                 if(err) callback(err, null);
                 else callback(null, tweet._id );
@@ -35,7 +35,7 @@ router.post('/stream',(req, res)=>{
           function(retweet, callback) {
             if(retweet) tweet.retweet = retweet;
 
-            if(tweet.quoted_status){
+            if(tweet.quoted_status){         // storing quoted tweet
               Tweet.add(tweet.quoted_status,(err, tweet)=>{
                 if(err) callback(err, null);
                 else callback(null, tweet._id );
@@ -47,7 +47,7 @@ router.post('/stream',(req, res)=>{
           function(quoted, callback) {
             if(quoted) tweet.quoted = quoted;
 
-            Tweet.add(tweet, (err, tweet)=>{
+            Tweet.add(tweet, (err, tweet)=>{  //storing original tweet
               if(err) callback(err, null);
               else callback(null, tweet);
             });
@@ -90,7 +90,7 @@ router.get('/csv', (req, res)=>{
     sortHeader       : false,
     trimHeaderValues : true,
     trimFieldValues  :  true,
-    keys             : ['text', 'retweet_count', 'favorite_count','lang','quote_count','hashtags','urls','reply_count', 'retweeted_status_id', 'quoted_status_id', 'userMentionScreenName', 'userId', 'userName', 'userScreenName','followers_count', 'statuses_count', 'userLocation']
+    keys             : ['text', 'date', 'retweet_count', 'favorite_count','lang','quote_count','hashtags','urls','reply_count', 'retweeted_status_id', 'quoted_status_id', 'userMentionScreenName', 'userId', 'userName', 'userScreenName','followers_count', 'statuses_count', 'userLocation']
 };
     // var fields = ['text', 'retweet_count', 'favorite_count','lang','quote_count','hashtags','urls','reply_count', 'retweeted_status_id', 'quoted_status_id', 'userMentionScreenName', 'userId', 'userName', 'userScreenName','followers_count', 'statuses_count', 'userLocation'];
     json2csv.json2csv(tweets,(err, csv)=>{

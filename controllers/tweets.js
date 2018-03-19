@@ -7,6 +7,8 @@ var Tweet = require('../models/tweets');
 var User = require('./users');
 
 var tweetsFilter = [];
+
+// add tweets
 exports.add = (tweet, callback)=>{
   User.add(tweet.user, (err, user)=>{
     if(err)  callback();
@@ -79,6 +81,7 @@ regexSuitable = (string, type)=>{
   return result;
 }
 
+// for sorting
 function predicateBy(sortBy, sort){
    return function(a,b){
       if( a[sortBy] > b[sortBy]){
@@ -90,8 +93,9 @@ function predicateBy(sortBy, sort){
    }
 }
 
-
+// for search and filtering
 exports.searchAndFilter = (req, callback)=>{
+  //initializing variables if no input given
   var body=req.body, search='.*', hashtags='.*', urls='.*', mentionsName='.*', lang='.*', mentionsScreenName='.*';
   var userName='.*',userScreenName='.*', sortBy = "";
   var from = 42250000, to = Date.now(), perPage = 20, pageNo = 1, sort = 1;
@@ -213,7 +217,7 @@ exports.searchAndFilter = (req, callback)=>{
    });
    if(sortBy!='')
    tweets = tweets.sort(predicateBy(sortBy, sort));
-    // console.log(tweets);
+    // pagination
     var start = Math.max(pageNo-1,0)*perPage;
     var end = start+perPage;
     tweets = tweets.slice(start, end);
@@ -231,6 +235,7 @@ exports.csvGenerate = (req, callback)=>{
             var sample = {
               text: tweet.text
             }
+            sample.time = moment(tweet.timestamp).format("DD-MM-YYYY HH:mm");
             sample.retweet_count = tweet.retweet_count;
             sample.favorite_count = tweet.favorite_count;
             sample.lang = tweet.lang;
