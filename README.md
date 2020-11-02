@@ -1,6 +1,6 @@
 # Twitter Api 
 
-Made 4 Apis
+Made 4 Apis( Used Postman for sending requests)
 
 * 1.) For Triggering a twitter stream and storing them into a NoSQL database(MongoDB) for keyword sent in request http://apitweets.herokuapp.com/tweets/stream
 
@@ -9,16 +9,6 @@ Made 4 Apis
 * 3.) For Exporting filtered data in csv http://apitweets.herokuapp.com/tweets/csv
 
 * 4.) For stopping the twitter stream http://apitweets.herokuapp.com/tweets/stop
-
-## Built With
-
-* Node.js
-* Express
-* MongoDB & Mongoose
-* Twit
-* json-2-csv
-* Async
-
 
 ##  API Description ( Used Postman for sending requests)
 
@@ -174,6 +164,14 @@ Raw request for ease in use
 ```
 ####  Api 3 responses will be saved in tweetsFiltered.csv
 
+## Built With
+
+* Node.js
+* Express
+* MongoDB & Mongoose
+* Twit
+* json-2-csv
+* Async
 
 ### Installation
 
